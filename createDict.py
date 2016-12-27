@@ -1,5 +1,16 @@
 '''
 create dictionary from given text corpus
+STEPS:
+	(1) count how many times each word appears => in self.word_frequence
+	(2) sort (word, frequency) list => saved in self.sorted_words_list => save self.sorted_words_list in self.sorted_tuple_path = 'tuple.pkl'
+	(3) construct dictionary from the sorted words list => in word2id => save self.word2id in self.dictionary_path = 'dictionary.pkl'
+Parameters:
+	(1) corpus_dir := where is the corpus
+	(2) dictionary_path := where to save the dictionary
+	(3) dict_size := the number of words in dictionary
+MISC:
+	(1) each word in dictionary is coded with 'unicodecsv', e.g. 'hi' -> u'hi', but could directly find by key 'hi' or by u'hi'
+	(2) word id is begin at 0, in save_dict(self) function
 '''
 
 import numpy as np
@@ -19,9 +30,12 @@ class createDict:
 		self.args = args
 		self.corpus_dir = '/Users/hanzhichao/Documents/ETH_Courses/DeepLearning/project/generate_ubuntu_data_set/dialogs/'
 		self.dialog_path_list = []
+		self.sorted_tuple_path = 'tuple.pkl'
 		self.dictionary_path = 'dictionary.pkl'
 		self.word_frequence = {}
 		self.sorted_words_list = []
+		self.word2id = {}
+		self.dict_size = 100000
 
 
 	def browse_all_subfolder_path(self):
@@ -78,13 +92,28 @@ class createDict:
 	def save_tuple_list(self):
 		''' [(word1, frequence1), (word2, frequence2)]'''
 		data = self.sorted_words_list
-		with open(self.dictionary_path, 'wb') as handle:
+		with open(self.sorted_tuple_path, 'wb') as handle:
 			pickle.dump(data, handle, -1)
 
 	def load_tuple_list(self):
 		''' [(word1, frequence1), (word2, frequence2)]'''
-		word_list = pickle.load(open( self.dictionary_path, "rb" ) )
-		return word_list
+		if os.path.isfile(self.sorted_tuple_path):
+			self.sorted_words_list = pickle.load(open( self.sorted_tuple_path, "rb" ) )
+		else:
+			self.sorted_words_list = self.save_tuple_list()
+
+	def save_dict(self):
+		for i in tqdm(range(self.dict_size)):
+			word_tuple = self.sorted_words_list[i]
+			word = word_tuple[0]
+			# word = str(word) # TODO: unicode
+			self.word2id[word] = i
+		with open(self.dictionary_path, 'wb') as handle:
+			pickle.dump(self.word2id, handle, -1)
+
+	def load_dict(self):
+		self.word2id = pickle.load(open( self.dictionary_path, "rb" ) )
+
 
 
 
@@ -108,7 +137,8 @@ file_path = t.browse_all_file_path(subfolder_path)
 
 # t.dialog_path_list = ['/Users/hanzhichao/Documents/ETH_Courses/DeepLearning/project/generate_ubuntu_data_set/dialogs/236/1.tsv']
 t.dialog_path_list = file_path
-t.construct_dict()
-t.save_tuple_list()
-# word_list = t.load_tuple_list()
+# t.construct_dict()
+# t.save_tuple_list()
+t.load_tuple_list()
 # print word_list
+t.save_dict()
