@@ -9,7 +9,7 @@ import pickle  # Saving the data
 import math  # For float comparison
 import os  # Checking file existance
 import random # for random number
-import pandas as pd
+import pandas as pd #data analysis tool
 
 class TextData:
     def __init__(self, args):
