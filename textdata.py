@@ -8,7 +8,7 @@ from tqdm import tqdm  # Progress bar
 import pickle  # Saving the data
 import math  # For float comparison
 import os  # Checking file existance
-import random
+import random # for random number
 import pandas as pd
 
 class TextData:
