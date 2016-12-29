@@ -24,8 +24,10 @@ class ChatBot:
         #Global options
         globalArgs = parser.add_argument_group('Global options')
         globalArgs.add_argument('--test',nargs='?',
-                                choices=[TestMode.ALL,TestMode.INTERACTIVE,TestMode.DAEMON], const=TestMode.ALL,default=None, help='if present, lauch the program to answer all sentences from a test file with or without target sentences; in interactive mode, user can write his or her own sentences; use daemon mode to integrate the chatbot into another program')
+                                choices=[ChatBot.TestMode.ALL,ChatBot.TestMode.INTERACTIVE,ChatBot.TestMode.DAEMON], const=ChatBot.TestMode.ALL,default=None, help='if present, lauch the program to answer all sentences from a test file with or without target sentences; in interactive mode, user can write his or her own sentences; use daemon mode to integrate the chatbot into another program')
         globalArgs.add_argument('--rootDir', type=str, default=None, help='folder where to look for models and data')
+        globalArgs.add_argument('--playDataset', type=int, nargs='?', const=10, default=None,  help='if set, the program  will randomly play some samples(can be use conjointly with createDataset if this is the only action you want to perform)')
+        
 
         #Dataset options
         datasetArgs = parser.add_argument_group('Dataset options')
@@ -42,10 +44,10 @@ class ChatBot:
         if not self.args.rootDir:
             self.args.rootDir = os.getcwd()
 
-        self.wordfreq = WordFreq(self.args)
-        self.trainData = TextData(self.args,'train')
+        #self.wordfreq = WordFreq(self.args)
+        #self.trainData = TextData(self.args,'train')
         self.validData = TextData(self.args,'valid')
-        if self.args.test==TestMode.ALL:
-            self.testData = TextData(self.args,'test')
+        #if self.args.test==TestMode.ALL:
+            #self.testData = TextData(self.args,'test')
 
 c = ChatBot().main()

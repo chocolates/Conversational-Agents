@@ -3,19 +3,35 @@ Loads the dialogue corpus, builds the vocabulary
 """
 
 import numpy as np
-import nltk  # For tokenize
-from tqdm import tqdm  # Progress bar
-import pickle  # Saving the data
-import math  # For float comparison
-import os  # Checking file existance
-import random # for random number
-import pandas as pd #data analysis tool
+import nltk
+from tqdm import tqdm
+import pickle
+import math
+import os
+import random
+import pandas as pd
+
+from wordfreq import WordFreq
 
 class TextData:
-    def __init__(self, args):
+    def __init__(self, args, mode):
         self.args = args
-        self.data_path = 'data/train.csv'
-        self.samples_path = 'data/samples.pkl'
+        self.corpus = self.args.corpus
+        self.sorted_list_path = os.path.join(self.args.rootDir, self.corpus+'_freqlist.pkl')
+        if self.corpus=='ubuntu':
+            if mode=='train':
+                self.data_path = os.path.join(self.args.rootDir,'data/ubuntu/train.csv')
+                self.samples_path = os.path.join(self.args.rootDir,'ubuntu__train_samples.pkl')
+            elif mode=='valid':
+                self.data_path = os.path.join(self.args.rootDir,'data/ubuntu/valid.csv')
+                self.samples_path = os.path.join(self.args.rootDir,'ubuntu_valid_samples.pkl')
+            elif mode=='test':
+                self.data_path = os.path.join(self.args.rootDir,'data/ubuntu/test.csv')
+                self.samples_path = os.path.join(self.args.rootDir,'ubuntu_test_samples.pkl') 
+        else:
+            self.samples_path = os.path.join(self.args.rootDir,'data/opensubus_samples.pkl') #to be modified
+
+        self.dictSize = self.args.dictSize
 
         self.padToken = -1  # Padding
         self.goToken = -1  # Start of sequence
@@ -32,6 +48,9 @@ class TextData:
         # Plot some stats:
         print('Loaded: {} words, {} training samples'.format(len(self.word2id), len(self.trainingSamples)))
 
+        if self.args.playDataset:
+            self.playDataset()
+
     def loadCorpus(self):
         """Load/create the conversations data
         Args:
@@ -42,7 +61,7 @@ class TextData:
             datasetExist = True
 
         if not datasetExist:  # First time we load the database: creating all files
-            print('Training samples not found. Creating dataset...')
+            print('Samples not found. Creating dataset...')
             # Corpus creation
             self.createCorpus(self.data_path)
 
@@ -58,6 +77,8 @@ class TextData:
     def createCorpus(self, data_path):
         """Extract all data from the given vocabulary
         """
+        self.createDict()
+        
         # Add standard tokens
         self.padToken = self.getWordId("<pad>")  # Padding (Warning: first things to add > id=0 !!)
         self.goToken = self.getWordId("<go>")  # Start of sequence
@@ -70,12 +91,24 @@ class TextData:
         # Iterate over rows in conversation dataframe
 
         for index in tqdm(range(1,len(conversation))):
-            inputWords = self.extractText(nltk.word_tokenize(conversation.iloc[index]['Context'].decode('utf8')))
-            targetWords = self.extractText(nltk.word_tokenize(conversation.iloc[index]['Utterance'].decode('utf8')))
+            inputWords = self.extractText(nltk.word_tokenize(conversation.iloc[index]['Context'].decode('utf8','ignore')))
+            targetWords = self.extractText(nltk.word_tokenize(conversation.iloc[index]['Utterance'].decode('utf8','ignore')))
 
             if inputWords and targetWords:
                 self.trainingSamples.append([inputWords, targetWords])
 
+    def createDict(self):
+        wordFreq = WordFreq(self.args)
+        wordFreqList = wordFreq.sorted_words_list
+        wordList = [x[0] for x in wordFreqList[0:self.dictSize]]
+        wordList.insert(0,'<unknown>')
+        wordList.insert(0,'<eos>')
+        wordList.insert(0,'<go>')
+        wordList.insert(0,'<pad>')
+        id = range(0,len(wordList))
+        self.word2id = dict(zip(wordList,id))
+        self.id2word = dict(zip(id,wordList))
+        
 
     def extractText(self, words):
         wordIDs = []
@@ -88,17 +121,12 @@ class TextData:
         wordID = self.word2id.get(word,-1)
 
         if wordID==-1:
-            if create:
-                wordID = len(self.word2id)
-                self.word2id[word] = wordID
-                self.id2word[wordID] = word
-            else:
-                wordID = self.unknownToken
+            wordID = self.unknownToken
 
         return wordID
 
     def removeTag(self, data_path):
-        df = pd.read_csv('data/train.csv',header = 0, usecols = [0,1])
+        df = pd.read_csv(self.data_path,header = 0, usecols = [0,1])
         df['Context'] = df['Context'].str.replace('__eou__','')
         df['Context'] = df['Context'].str.replace('__eot__','')
         df['Utterance'] = df['Utterance'].str.replace('__eou__','')
@@ -134,15 +162,40 @@ class TextData:
             self.goToken = self.word2id["<go>"]
             self.eosToken = self.word2id["<eos>"]
             self.unknownToken = self.word2id["<unknown>"]  # Restore special words
-'''
-df = pd.read_csv('data/test.csv',header = 0, usecols = [0,1])
-df['Context'] = df['Context'].str.replace('__eou__','')
-df['Context'] = df['Context'].str.replace('__eot__','')
-df['Utterance'] = df['Utterance'].str.replace('__eou__','')
-df['Utterance'] = df['Utterance'].str.replace('__eot__','')
-#print df.head()
-print df.iloc[1]['Context']
-print nltk.word_tokenize(df.iloc[1]['Context'])'''
 
-t = TextData('play')
-t.loadCorpus()
+    def sequence2str(self, sequence, clean=False, reverse=False):
+        """Convert a list of integer into a human readable string
+        Args:
+            sequence (list<int>): the sentence to print
+            clean (Bool): if set, remove the <go>, <pad> and <eos> tokens
+            reverse (Bool): for the input, option to restore the standard order
+        Return:
+            str: the sentence
+        """
+        if not sequence:
+            return ''
+
+        if reverse:
+            sequence.reverse()
+
+        if not clean:
+            return ' '.join([self.id2word[id] for id in sequence])
+
+        sentence = []
+        for id in sequence:
+            if id==self.eosToken:
+                break
+            elif id!=self.padToken and id!=self.goToken:
+                sentence.append(self.id2word[id])
+
+        return ' '.join(sentence)
+
+    def playDataset(self):
+        """Print a random dialogue from the dataset
+        """
+        print('Randomly play samples:')
+        for i in range(self.args.playDataset):
+            idSample = random.randint(0,len(self.trainingSamples))
+            print('Q: {}'.format(self.sequence2str(self.trainingSamples[idSample][0])))
+            print('A: {}'.format(self.sequence2str(self.trainingSamples[idSample][1])))
+            print()

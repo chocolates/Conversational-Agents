@@ -89,6 +89,7 @@ class WordFreq:
 	    for sentence in dialog:
 		word_list = nltk.word_tokenize(sentence)
 		for word in word_list:
+                    word = word.lower()
 		    count = self.word_frequence.get(word, -1)
 		    if count == -1:
 			self.word_frequence[word] = 1
