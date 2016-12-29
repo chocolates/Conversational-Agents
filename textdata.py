@@ -21,7 +21,7 @@ class TextData:
         if self.corpus=='ubuntu':
             if mode=='train':
                 self.data_path = os.path.join(self.args.rootDir,'data/ubuntu/train.csv')
-                self.samples_path = os.path.join(self.args.rootDir,'ubuntu__train_samples.pkl')
+                self.samples_path = os.path.join(self.args.rootDir,'ubuntu_train_samples.pkl')
             elif mode=='valid':
                 self.data_path = os.path.join(self.args.rootDir,'data/ubuntu/valid.csv')
                 self.samples_path = os.path.join(self.args.rootDir,'ubuntu_valid_samples.pkl')
