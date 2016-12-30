@@ -20,6 +20,10 @@ unknownToken = '<unknown>'
 MAX_CONTEXT_LENGTH = 100
 MAX_UTTER_LENGTH = 50
 
+word2id = {}
+id2word = {}
+samples = []
+
 def load_corpus(samples_path, data_path, sorted_list_path, dialog_path, vocab_size, playDataset = 0):
     """Load/create the conversations data
     Args:
@@ -32,14 +36,14 @@ def load_corpus(samples_path, data_path, sorted_list_path, dialog_path, vocab_si
     if not datasetExist:  # First time we load the database: creating all files
         print('Samples not found. Creating dataset...')
         # Corpus creation
-        samples, word2id, id2word = create_corpus(data_path, sorted_list_path, dialog_path, vocab_size)
+        create_corpus(data_path, sorted_list_path, dialog_path, vocab_size)
 
         # Saving
         print('Saving dataset...')
-        save_dataset(samples_path, word2id, id2word, samples)  # Saving tf samples
+        save_dataset(samples_path)  # Saving tf samples
     else:
         print('Loading dataset from ...')
-        word2id, id2word, samples = load_dataset(samples_path)
+        load_dataset(samples_path)
 
     assert word2id[padToken] == 0
 
@@ -47,21 +51,21 @@ def load_corpus(samples_path, data_path, sorted_list_path, dialog_path, vocab_si
     print('Loaded: {} words, {} training samples'.format(len(word2id), len(samples)))
 
     if playDataset>0:
-        play_dataset(playDataset, samples, id2word)
+        play_dataset(playDataset)
 
 def create_corpus(data_path, sorted_list_path, dialog_path, vocab_size):
     """Extract all data from the given vocabulary
     """
-    word2id, id2word = initialize_vocabulary(sorted_list_path, dialog_path, vocab_size)
+    initialize_vocabulary(sorted_list_path, dialog_path, vocab_size)
 
     # Remove __eou__ and __eot__ tags
     conversation = remove_tag(data_path)
 
     # Iterate over rows in conversation dataframe
-    samples = []
+    global samples
     for index in tqdm(range(1,len(conversation))):
-        inputWords = extract_text(nltk.word_tokenize(conversation.iloc[index]['Context'].decode('utf8','ignore')), word2id)
-        targetWords = extract_text(nltk.word_tokenize(conversation.iloc[index]['Utterance'].decode('utf8','ignore')), word2id)
+        inputWords = extract_text(nltk.word_tokenize(conversation.iloc[index]['Context'].decode('utf8','ignore')))
+        targetWords = extract_text(nltk.word_tokenize(conversation.iloc[index]['Utterance'].decode('utf8','ignore')))
 
         if inputWords and targetWords:
             if len(inputWords)>MAX_CONTEXT_LENGTH:
@@ -70,7 +74,6 @@ def create_corpus(data_path, sorted_list_path, dialog_path, vocab_size):
                 targetWords = targetWords[:MAX_UTTER_LENGTH]
             samples.append([inputWords, targetWords])
 
-    return samples, word2id, id2word
 
 def initialize_vocabulary(sorted_list_path, dialog_path, vocab_size):
 
@@ -82,10 +85,11 @@ def initialize_vocabulary(sorted_list_path, dialog_path, vocab_size):
     word_list.insert(0,goToken)
     word_list.insert(0,padToken)
     id = range(0,len(word_list))
+    global word2id
     word2id = dict(zip(word_list,id))
+    global id2word 
     id2word = dict(zip(id,word_list))
 
-    return word2id, id2word
 
 def remove_tag(data_path):
     df = pd.read_csv(data_path,header = 0, usecols = [0,1])
@@ -95,7 +99,7 @@ def remove_tag(data_path):
     df['Utterance'] = df['Utterance'].str.replace('__eot__','')
     return df
 
-def extract_text(words, word2id):
+def extract_text(words):
     wordIDs = []
     for word in words:
         wordID = word2id.get(word.lower(),-1)
@@ -105,7 +109,7 @@ def extract_text(words, word2id):
             wordIDs.append(wordID)
     return wordIDs
 
-def save_dataset(samples_path, word2id, id2word, samples):
+def save_dataset(samples_path):
     with open(samples_path, 'wb') as handle:
         data = {  # Warning: If adding something here, also modifying loadDataset
             "word2id": word2id,
@@ -115,14 +119,17 @@ def save_dataset(samples_path, word2id, id2word, samples):
         pickle.dump(data, handle, -1)  # Using the highest protocol available
 
 def load_dataset(samples_path):
+    global word2id
+    global samples
+    global id2word
     with open(samples_path, 'rb') as handle:
         data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
         word2id = data["word2id"]
         id2word = data["id2word"]
         samples = data["samples"]
-        return word2id, id2word, samples
+        
 
-def sequence2str(sequence, id2word, clean=False, reverse=False):
+def sequence2str(sequence, clean=False, reverse=False):
     """Convert a list of integer into a human readable string
     Args:
         sequence (list<int>): the sentence to print
@@ -149,13 +156,13 @@ def sequence2str(sequence, id2word, clean=False, reverse=False):
 
     return ' '.join(sentence)
 
-def play_dataset(num, samples, id2word):
+def play_dataset(num):
     """Print a random dialogue from the dataset
     """
     print('Randomly play samples:')
     for i in range(num):
         idSample = random.randint(0,len(samples))
-        print('Context: {}'.format(sequence2str(samples[idSample][0], id2word)))
-        print('Utterance: {}'.format(sequence2str(samples[idSample][1], id2word)))
+        print('Context: {}'.format(sequence2str(samples[idSample][0])))
+        print('Utterance: {}'.format(sequence2str(samples[idSample][1])))
 
-load_corpus('ubuntu_valid_samples', 'data/ubuntu/valid.csv', 'ubuntu_freqlist.pkl', 'data/ubuntu/dialogs', 50000, 20)
+load_corpus('ubuntu_train_samples.pkl', 'data/ubuntu/train.csv', 'ubuntu_freqlist.pkl', 'data/ubuntu/dialogs/', 50000, 20)
