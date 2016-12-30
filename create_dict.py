@@ -102,5 +102,3 @@ def get_dialog(dialog_path):
 def save_sorted_list(sorted_list_path, sorted_words_list):
 	with open(sorted_list_path, 'wb') as handle:
 		pickle.dump(sorted_words_list, handle, -1)
-
-l = load_sorted_list()
