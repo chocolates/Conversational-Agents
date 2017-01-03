@@ -1,3 +1,0 @@
-A Neural Conversational Model
-TensorFlow: https://github.com/Conchylicultor/DeepQA
-https://github.com/nicolas-ivanov/seq2seq_chatbot_links
