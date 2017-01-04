@@ -17,6 +17,13 @@ MAX_CONTEXT_LENGTH = 100
 MAX_UTTER_LENGTH = 50
 _buckets = [(10,20),(20,40),(30,60),(40,80),(50,100)]
 
+class Batch:
+
+    def __init__(self):
+        self.encoder_inputs = []
+        self.decoder_inputs = []
+        self.weights = []
+
 class TextData:
 
     def __init__(self, samples_path, data_path, sorted_list_path, dialog_path, vocab_size, playDataset = 0):
@@ -55,7 +62,7 @@ class TextData:
         assert self.word2id[self.padToken] == 0
 
         # Plot some stats:
-        print('Loaded: {} words, {} training samples'.format(len(self.word2id), len(self.samples)))
+        print('Loaded: {} words, {} training samples'.format(len(self.word2id), self.get_sample_size()))
 
         if playDataset>0:
             self.play_dataset(playDataset)
@@ -170,5 +177,61 @@ class TextData:
             print('Context: {}'.format(self.sequence2str(self.samples[idBucket][idSample][0])))
             print('Utterance: {}'.format(self.sequence2str(self.samples[idBucket][idSample][1])))
 
-t = TextData('ubuntu_train_samples.pkl', 'data/ubuntu/train.csv', 'ubuntu_freqlist.pkl', 'data/ubuntu/dialogs/', 50000, 20)
-print len(t.samples)
+    def get_batches(self, batch_size):
+        train_bucket_sizes = [len(self.samples[i]) for i in xrange(len(_buckets))]
+        train_total_size = float(sum(train_bucket_sizes))
+        train_buckets_scale_cumsum = [sum(train_bucket_sizes[:i + 1])/train_total_size for i in xrange(len(train_bucket_sizes))]
+        num_batches_taken = [0]*len(_buckets)
+
+        self.shuffle()
+
+        batches = []
+
+        for i in range(0, self.get_sample_size(), batch_size):
+            bucket_id = min([i for i in xrange(len(train_buckets_scale_cumsum)) if train_buckets_scale_cumsum[i] > np.random.random()])
+            while num_batches_taken[bucket_id]*batch_size>train_bucket_sizes[bucket_id]:
+                bucket_id = min([i for i in xrange(len(train_buckets_scale_cumsum)) if train_buckets_scale_cumsum[i] > np.random.random()])
+            encoder_size, decoder_size = _buckets[bucket_id]
+
+            start_idx = num_batches_taken[bucket_id]*batch_size
+            if (num_batches_taken[bucket_id]+1)*batch_size>train_bucket_sizes[bucket_id]:
+                continue
+            end_idx = (num_batches_taken[bucket_id]+1)*batch_size
+
+            batch = Batch()
+
+            encoder_inputs = []
+            decoder_inputs = []
+            for idx in xrange(start_idx, end_idx):
+                encoder_input, decoder_input = self.samples[bucket_id][idx]
+                encoder_pad = [self.word2id[self.padToken]]*(encoder_size-len(encoder_input))
+                encoder_inputs.append(list(reversed(encoder_input+encoder_pad)))
+                decoder_pad = [self.word2id[self.padToken]]*(decoder_size+2-len(decoder_input))
+                decoder_inputs.append([self.word2id[self.goToken]]+decoder_input+decoder_pad)
+
+            for length_idx in xrange(encoder_size):
+                batch.encoder_inputs.append(np.array([encoder_inputs[batch_idx][length_idx] for batch_idx in xrange(batch_size)], dtype = np.int32))
+
+            for length_idx in xrange(decoder_size+2):
+                batch.decoder_inputs.append(np.array([decoder_inputs[batch_idx][length_idx] for batch_idx in xrange(batch_size)], dtype = np.int32))
+
+                weight = np.ones(batch_size, dtype=np.float32)
+                for batch_idx in xrange(batch_size):
+                    if length_idx==decoder_size or decoder_inputs[batch_idx][length_idx+1]==self.word2id[self.padToken]:
+                        weight[batch_idx] = 0.0
+                batch.weights.append(weight)
+
+            batches.append(batch)
+
+        return batches
+
+    def shuffle(self):
+        print "Shuffling dataset..."
+        for i in xrange(len(self.samples)):
+            random.shuffle(self.samples[i])
+
+    def get_sample_size(self):
+        return sum([len(self.samples[x]) for x in xrange(len(_buckets))])
+
+t = TextData('ubuntu_valid_samples.pkl', 'data/ubuntu/valid.csv', 'ubuntu_freqlist.pkl', 'data/ubuntu/dialogs/', 50000, 0)
+b = t.get_batches(50)
