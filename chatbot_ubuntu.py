@@ -16,7 +16,7 @@ tf.app.flags.DEFINE_float('learning_rate',0.5,'Learning rate')
 tf.app.flags.DEFINE_float('learning_rate_decay_factor',0.99,'Learning rate decays by this much')
 tf.app.flags.DEFINE_float('max_gradient_norm',5.0,'Clip gradients to this norm')
 tf.app.flags.DEFINE_integer('batch_size',64,'Batch size for training')
-tf.app.flags.DEFINE_integer('size',512,'Size of each layer')
+tf.app.flags.DEFINE_integer('size',512,'Size of each layer') # the number of unfolded LSTM units in each layer(maybe too larger)..? or the dimension of hidden vector?
 tf.app.flags.DEFINE_integer('num_layers',3,'Number of layers')
 tf.app.flags.DEFINE_integer('num_epochs',30,'maximum number of epochs to run')
 tf.app.flags.DEFINE_integer('vocab_size',50000,'Vocabulary size, words with lower frequency are regarded as unknown')
@@ -36,9 +36,14 @@ tf.app.flags.DEFINE_boolean('decode',False,'Set to True for interactive decoding
 FLAGS = tf.app.flags.FLAGS
 _buckets = [(10,20),(20,40),(30,60),(40,80),(50,100)]
 
-def create_model(session, FLAGS):
-    model = Model()
+def create_model(session):
+    model = Model(FLAGS)
     # TODO: save and restore model to/from hard disk
+    Load_model = False
+    if Load_model:
+        model.saver.restore(session, FILA_NAME)
+    else:
+        session.run(tf.initialize_all_variables())
     return model
     
     
@@ -49,7 +54,7 @@ def train():
 
         #Create model.
         print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
-        model = create_model(sess, ???)
+        model = create_model(sess)
 
         #Read data into buckets
         train_set = TextData(FLAGS.train_samples_path, FLAGS.train_data_path, FLAGS.sorted_list_path, FLAGS.dialog_path, FLAGS.vocab_size, FLAGS.playDataset)
