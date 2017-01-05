@@ -232,6 +232,3 @@ class TextData:
 
     def get_sample_size(self):
         return sum([len(self.samples[x]) for x in xrange(len(_buckets))])
-
-t = TextData('ubuntu_valid_samples.pkl', 'data/ubuntu/valid.csv', 'ubuntu_freqlist.pkl', 'data/ubuntu/dialogs/', 50000, 0)
-b = t.get_batches(50)
