@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from text_data import *
 from create_dict import *
-from model_seq2seq import *
+from model_seq2seq import Model
 
 tf.app.flags.DEFINE_float('learning_rate',0.5,'Learning rate')
 tf.app.flags.DEFINE_float('learning_rate_decay_factor',0.99,'Learning rate decays by this much')
@@ -36,6 +36,12 @@ tf.app.flags.DEFINE_boolean('decode',False,'Set to True for interactive decoding
 FLAGS = tf.app.flags.FLAGS
 _buckets = [(10,20),(20,40),(30,60),(40,80),(50,100)]
 
+def create_model(session, FLAGS):
+    model = Model()
+    # TODO: save and restore model to/from hard disk
+    return model
+    
+    
 
 def train():
 
