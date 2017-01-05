@@ -76,7 +76,14 @@ def train():
             for nextBatch in tqdm(batches, desc="Training"):
                 #Get a batch and make a step
                 start_time = time.time()
-                step_loss, ??? = model.step(sess, nextBatch.encoder_inputs, nextBatch.decoder_inputs, nextBatch.weights, ???)
+                
+                
+                ops, feedDict = model.step(sess, nextBatch) # for nextBatch:  decoderSeqs and targetSeqs are very similar, see DeepQA/textdata.py/Line 121-122
+                TRAINING = 1 # This is training! Not test!  Model.step() returns loss operator
+                _, step_loss = sess.run(ops, feedDict)                
+                # step_loss, ??? = model.step(sess, nextBatch.encoder_inputs, nextBatch.decoder_inputs, nextBatch.weights, ???)
+                
+                
                 step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
                 loss += step_loss / FLAGS.steps_per_checkpoint
                 current_step += 1
