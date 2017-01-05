@@ -29,7 +29,6 @@ class Model:
         self.decoderWeights = None
         self.args.embeddingSize = 32 # the size of word embedding, used in tf.nn.seq2seq.embedding_rnn_seq2seq (DeepQA) [in seq2seq it is set same with hidden vector size]
         
-        
         self.buildNetwork()
     def buildNetwork(self):
         '''
@@ -75,6 +74,24 @@ class Model:
                 beta2=0.999,
                 epsilon=1e-08
             )
-            self.optOp = opt.minimize(self.lossFct)
+            self.optOp = opt.minimize(self.lossFct) # the operator computing loss function
+            
     def step(self):
+        feedDict = {}
+        ops = None
         
+        if not self.args.test:
+            for i in range(self.args.maxLengthEnco):
+                feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
+            for i in range(self.args.maxLengthDeco):
+                feedDict[self.decoderInputs[i]]  = batch.decoderSeqs[i] # Ref: DeepQA/model.py/step(); DeepQA/textdata.py/line 121 and line 122 
+                feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
+                feedDict[self.decoderWeights[i]] = batch.weights[i]
+            ops = (self.optOp, self.lossFct) # self.optOp is needed, because we need to minimize self.lossFct
+        else:
+            for i in range(self.args.maxLengthEnco):
+                feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
+            feedDict[self.decoderInputs[0]]  = [self.textData.goToken]
+            
+            ops = (self.outputs,) # tuple
+        return ops, feedDict
