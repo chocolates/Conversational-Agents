@@ -84,7 +84,7 @@ class Seq2SeqModel:
             self.target_weights = []
             for i in xrange(buckets[-1][0]): #Last bucket is the biggest one.
                 self.encoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="encoder{}".format(i)))
-            for i in xrange(buckets[-1][1]+2): #The padded length is 2 more than bucket size, see textdata.py
+            for i in xrange(buckets[-1][1]+3): #The padded length is 2 more than bucket size, see textdata.py
                 self.decoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="decoder{}".format(i)))
                 self.target_weights.append(tf.placeholder(tf.float32, shape=[None], name="weight{}".format(i)))
 
@@ -128,3 +128,55 @@ class Seq2SeqModel:
                     self.updates.append(opt.apply_gradients(
                         zip(clipped_gradients, params), global_step=self.global_step))
             self.saver = tf.train.Saver(tf.all_variables())
+
+    def step(self, session, encoder_inputs, decoder_inputs, target_weights, bucket_id, forward_only):
+        """Run a step of the model feeding the given inputs.
+        Args:
+            session: tensorflow session to use.
+            encoder_inputs: list of numpy int vectors to feed as encoder inputs.
+            decoder_inputs: list of numpy int vectors to feed as decoder inputs.
+            target_weights: list of numpy float vectors to feed as target weights.
+            bucket_id: which bucket of the model to use.
+            forward_only: whether to do the backward step or only forward.
+        Returns:
+            A triple consisting of gradient norm (or None if we did not do backward),
+            average perplexity, and the outputs.
+        """
+        encoder_size = len(encoder_inputs)
+        decoder_size = len(decoder_inputs)
+        #Input feed: encoder inputs, decoder inputs, target_weights, as provided.
+        input_feed = {}
+        for l in xrange(encoder_size):
+            input_feed[self.encoder_inputs[l].name] = encoder_inputs[l]
+        for l in xrange(decoder_size):
+            input_feed[self.decoder_inputs[l].name] = decoder_inputs[l]
+            input_feed[self.target_weights[l].name] = target_weights[l]
+
+        #Since our targets are decoder inputs shifted by one, we need one more.
+        last_target = self.decoder_inputs[decoder_size].name
+        input_feed[last_target] = np.zeros([self.batch_size], dtype=np.int32)
+
+        #Output feed: depends on whether we do a backward step or not.
+        if not forward_only:
+            output_feed = [self.updates[bucket_id],
+                           self.gradient_norms[bucket_id],
+                           self.losses[bucket_id]]
+        else:
+            if beam_search:
+                output_feed = [self.beam_path[bucket_id]] #Loss for this batch
+                output_feed.append(self.beam_symbol[bucket_id])
+            else:
+                output_feed = [self.losses[bucket_id]]
+
+            for l in xrange(decoder_size):
+                output_feed.append(self.outputs[bucket_id][l])
+
+        outputs = session.run(output_feed, input_feed)
+
+        if not forward_only:
+            return outputs[1], outputs[2], None #Gradient norm, loss, no output
+        else:
+            if beam_search:
+                return outputs[0], outputs[1], outputs[2:] #No gradient norm, loss, output
+            else:
+                return None, outputs[0], outputs[1:] #No gradient norm, loss, output
