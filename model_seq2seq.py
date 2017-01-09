@@ -1,26 +1,26 @@
 '''
 Model to predict next sentence given an input sequence
-Reference: 
+Reference:
     http://r2rt.com/recurrent-neural-networks-in-tensorflow-i.html
-    
+
 '''
 import tensorflow as tf
-from text_data_copy import TextData
+from text_data import TextData
 
-class Model:    
+class Model:
     def __init__(self, FLAGS):
         """
         Args:
             args: parameters of the model
         """
         print("model creation...")
-        
+
         self.args.numLayers = FLAGS.num_layers # number of layers
         self.args.size = FLAGS.size # the number of unfolded LSTM units in each layer
         self.args.vocab_size = FLAGS.vocab_size
         self.args.test = FLAGS.testMode # true if test (we use previous output as next input (feed_previous) )
         self.args.learning_rate = FLAGS.learning_rate
-        
+
         self.args.hiddenSize = 50 # the length of hidden state vector
         self.args.softmaxSamples = 1024 # the number of samples for sampled softmax. (seq2seq_model)
         self.encoderInputs = None
@@ -28,7 +28,7 @@ class Model:
         self.decoderTargets = None
         self.decoderWeights = None
         self.args.embeddingSize = 32 # the size of word embedding, used in tf.nn.seq2seq.embedding_rnn_seq2seq (DeepQA) [in seq2seq it is set same with hidden vector size]
-        
+
         self.buildNetwork()
     def buildNetwork(self):
         '''
@@ -38,14 +38,14 @@ class Model:
         encoDecoCell = tf.nn.rnn_cell.BasicLSTMCell(self.args.hiddenSize, state_is_tuple=True)
         # TODO: Add dropout: tf.nn.rnn_cell.DropoutWrapper()
         encoDecoCell = tf.nn.rnn_cell.MultiRNNCell([encoDecoCell] * self.args.numLayers, state_is_tuple=True)
-        
+
         with tf.name_scope('placeholder_encoder'):
             self.encoderInputs  = [tf.placeholder(tf.int32,   [None, ]) for _ in range(self.args.maxLengthEnco)]  # Batch size * sequence length * input dim
         with tf.name_scope('placeholder_decoder'):
             self.decoderInputs  = [tf.placeholder(tf.int32,   [None, ], name='inputs') for _ in range(self.args.maxLengthDeco)]  # Same sentence length for input and output (Right ?)
             self.decoderTargets = [tf.placeholder(tf.int32,   [None, ], name='targets') for _ in range(self.args.maxLengthDeco)]
             self.decoderWeights = [tf.placeholder(tf.float32, [None, ], name='weights') for _ in range(self.args.maxLengthDeco)]
-        
+
         decoderOutputs, states = tf.nn.seq2seq.embedding_rnn_seq2seq(
             self.encoderInputs,
             self.decoderInputs,
@@ -75,16 +75,16 @@ class Model:
                 epsilon=1e-08
             )
             self.optOp = opt.minimize(self.lossFct) # the operator computing loss function
-            
+
     def step(self):
         feedDict = {}
         ops = None
-        
+
         if not self.args.test:
             for i in range(self.args.maxLengthEnco):
                 feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
             for i in range(self.args.maxLengthDeco):
-                feedDict[self.decoderInputs[i]]  = batch.decoderSeqs[i] # Ref: DeepQA/model.py/step(); DeepQA/textdata.py/line 121 and line 122 
+                feedDict[self.decoderInputs[i]]  = batch.decoderSeqs[i] # Ref: DeepQA/model.py/step(); DeepQA/textdata.py/line 121 and line 122
                 feedDict[self.decoderTargets[i]] = batch.targetSeqs[i]
                 feedDict[self.decoderWeights[i]] = batch.weights[i]
             ops = (self.optOp, self.lossFct) # self.optOp is needed, because we need to minimize self.lossFct
@@ -92,6 +92,6 @@ class Model:
             for i in range(self.args.maxLengthEnco):
                 feedDict[self.encoderInputs[i]]  = batch.encoderSeqs[i]
             feedDict[self.decoderInputs[0]]  = [self.textData.goToken]
-            
+
             ops = (self.outputs,) # tuple
         return ops, feedDict
