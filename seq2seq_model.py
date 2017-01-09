@@ -48,7 +48,11 @@ class Seq2SeqModel:
             def sampled_loss(labels, inputs):
                 labels = tf.reshape(labels, [-1,1])
                 local_inputs = tf.cast(inputs, tf.float32)
-                return tf.nn.sampled_loss(
+                print "labels: "
+                print labels
+                print "local_inputs: "
+                print local_inputs
+                return tf.nn.sampled_softmax_loss(
                         weights = w_t,
                         biases = b,
                         labels = labels,
@@ -58,12 +62,12 @@ class Seq2SeqModel:
             softmax_loss_function = sampled_loss
 
             #Create the internal multi-layer cell for our RNN.
-            single_cell = tf.contrib.rnn.GRUCell(size)
+            single_cell = tf.nn.rnn_cell.GRUCell(size) # ERROR: 'module' object has no attribute 'GRUCell'
             if use_lstm:
-                single_cell = tf.contrib.rnn.BasicLSTMCell(size)
+                single_cell = tf.nn.rnn_cell.BasicLSTMCell(size)
             cell = single_cell
             if num_layers>1:
-                cell = tf.contrib.rnn.MultiRNNCell([single_cell]*num_layers)
+                cell = tf.nn.rnn_cell.MultiRNNCell([single_cell]*num_layers)
 
             def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
                 if attention:
@@ -89,13 +93,13 @@ class Seq2SeqModel:
                 self.target_weights.append(tf.placeholder(tf.float32, shape=[None], name="weight{}".format(i)))
 
             #Our targets are decoder inputs shifted by one.
-            targets = [self.decoder_inputs[i+1] for i in xrange(len(decoder_inputs)-1)]
+            targets = [self.decoder_inputs[i+1] for i in xrange(len(self.decoder_inputs)-1)]
 
             if forward_only:
                 if beam_search:
                     self.outputs, self.beam_path, self.beam_symbol = decode_model_with_buckets(
                         self.encoder_inputs, self.decoder_inputs, targets,
-                        self.target_weights, buckets, lambda x,y: seq2seq_f(x,y,True)
+                        self.target_weights, buckets, lambda x,y: seq2seq_f(x,y,True),
                         softmax_loss_function=softmax_loss_function)
                 else:
                     self.outputs, self.losses = model_with_buckets(
