@@ -1,0 +1,29 @@
+
+cd /cluster/scratch/zhhan
+mkdir Chatbot
+cd Chatbot
+pwd  -->> /cluster/scratch/zhhan/Chatbot/
+scp ./chatbot_ubuntu.py zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./seq2seq_model.py zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./seq2seq.py zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./text_data.py zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./create_dict.py zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./ubuntu_train_samples.pkl zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./ubuntu_valid_samples.pkl zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+scp ./ubuntu_freqlist.pkl zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+
+# install  tqdm package
+# in ~/
+mkdir -p $HOME/python/lib64/python3.3/site-packages
+export PYTHONPATH=$HOME/python/lib64/python3.3/site-packages:$PYTHONPATH
+module load python/3.3.3
+python -m pip install --install-option="--prefix=$HOME/python" tqdm
+
+scp ./euler.bash zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
+
+chmod +x euler.bash
+./euler.bash
+
+# see jobs
+bjobs
+bkill
