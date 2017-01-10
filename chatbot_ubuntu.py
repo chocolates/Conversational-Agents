@@ -20,7 +20,7 @@ tf.app.flags.DEFINE_integer('batch_size',64,'Batch size for training')
 tf.app.flags.DEFINE_integer('size',5,'Size of each layer') # the number of unfolded LSTM units in each layer(maybe too larger)..? or the dimension of hidden vector?
 tf.app.flags.DEFINE_integer('num_layers',2,'Number of layers')
 tf.app.flags.DEFINE_integer('num_epochs',30,'maximum number of epochs to run')
-tf.app.flags.DEFINE_integer('vocab_size',50000,'Vocabulary size, words with lower frequency are regarded as unknown')
+tf.app.flags.DEFINE_integer('vocab_size',50004,'Vocabulary size, words with lower frequency are regarded as unknown')
 #file paths
 tf.app.flags.DEFINE_string('train_samples_path','ubuntu_train_samples.pkl','Processed training samples')
 tf.app.flags.DEFINE_string('valid_samples_path','ubuntu_valid_samples.pkl','Processed validation samples')
@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_string('train_dir','train','Training directory')
 #options
 tf.app.flags.DEFINE_integer('playDataset',20,'Display random samples from data')
 tf.app.flags.DEFINE_integer('max_train_data_size',0,'Limit on the size of training data (0: no limit)')
-tf.app.flags.DEFINE_integer('steps_per_checkpoint',500,'Number of training steps between checkpoints')
+tf.app.flags.DEFINE_integer('steps_per_checkpoint',20,'Number of training steps between checkpoints')
 tf.app.flags.DEFINE_boolean('decode',False,'Set to True for interactive decoding')
 tf.app.flags.DEFINE_integer("beam_size", 100, "???")
 tf.app.flags.DEFINE_boolean("beam_search", False, "Set to True for beam_search.")
@@ -115,6 +115,7 @@ def train():
                     step_time, loss = 0.0, 0.0
 
                     # Run evals on development set and print their perplexity.
+                    print("run evals on development set")
                     dev_batches = dev_set.get_batches(FLAGS.batch_size)
                     eval_loss_sum = 0
                     for dev_batch in dev_batches:
@@ -141,7 +142,16 @@ def train():
 
 def main(_):
     train()
+    
+    # generate_data() # generate data set
 
+# def generate_data():
+#     rootDir = "/Users/hanzhichao/Documents/ETH_Courses/DeepLearning/project/"
+#     FLAGS.sorted_list_path = None
+#     print("training data...")    
+#     train_set = TextData(FLAGS.train_samples_path, rootDir + FLAGS.train_data_path, FLAGS.sorted_list_path, rootDir + FLAGS.dialog_path, FLAGS.vocab_size, FLAGS.playDataset)
+#     print("validation data...")
+#     dev_set = TextData(FLAGS.valid_samples_path, rootDir + FLAGS.valid_data_path, FLAGS.sorted_list_path, rootDir + FLAGS.dialog_path, FLAGS.vocab_size, FLAGS.playDataset)
 if __name__ == "__main__":
     tf.app.run()
 

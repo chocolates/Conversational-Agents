@@ -62,13 +62,13 @@ class Seq2SeqModel:
 
         def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
             if attention:
-                print "Attention Model"
+                print("Attention Model")
                 return embedding_attention_seq2seq(encoder_inputs, decoder_inputs,
                             cell, num_encoder_symbols=vocab_size, num_decoder_symbols=vocab_size,
                             embedding_size=size, output_projection=output_projection,
                             feed_previous=do_decode, beam_search=beam_search, beam_size=beam_size)
             else:
-                print "Basic Model"
+                print("Basic Model")
                 return embedding_rnn_seq2seq(encoder_inputs, decoder_inputs, cell,
                             num_encoder_symbols=vocab_size, num_decoder_symbols=vocab_size,
                             embedding_size=size, output_projection=output_projection,
@@ -77,14 +77,14 @@ class Seq2SeqModel:
         self.encoder_inputs = []
         self.decoder_inputs = []
         self.target_weights = []
-        for i in xrange(buckets[-1][0]): #Last bucket is the biggest one.
+        for i in range(buckets[-1][0]): #Last bucket is the biggest one.
             self.encoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="encoder{}".format(i)))
-        for i in xrange(buckets[-1][1]+3): #The padded length is 2 more than bucket size, see textdata.py
+        for i in range(buckets[-1][1]+3): #The padded length is 2 more than bucket size, see textdata.py
             self.decoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="decoder{}".format(i)))
             self.target_weights.append(tf.placeholder(tf.float32, shape=[None], name="weight{}".format(i)))
 
         #Our targets are decoder inputs shifted by one.
-        targets = [self.decoder_inputs[i+1] for i in xrange(len(self.decoder_inputs)-1)]
+        targets = [self.decoder_inputs[i+1] for i in range(len(self.decoder_inputs)-1)]
         buckets2 = [(b[0],b[1]+2) for b in buckets]
         if forward_only:
             if beam_search:
@@ -99,7 +99,7 @@ class Seq2SeqModel:
                         softmax_loss_function=softmax_loss_function)
             # If we use output projection, we need to project outputs for decoding.
             if output_projection is not None:
-                for b in xrange(len(buckets)):
+                for b in range(len(buckets)):
                     self.outputs[b] = [
                             tf.matmul(output, output_projection[0])+output_projection[1]
                             for output in self.outputs[b]
@@ -116,7 +116,7 @@ class Seq2SeqModel:
             self.gradient_norms = []
             self.updates = []
             opt = tf.train.GradientDescentOptimizer(self.learning_rate) #CAN BE REPLACED by a more advanced optimizer
-            for b in xrange(len(buckets)):
+            for b in range(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
                 clipped_gradients, norm = tf.clip_by_global_norm(gradients, max_gradient_norm)
                 self.gradient_norms.append(norm)
@@ -144,9 +144,9 @@ class Seq2SeqModel:
         decoder_size = len(decoder_inputs)
         #Input feed: encoder inputs, decoder inputs, target_weights, as provided.
         input_feed = {}
-        for l in xrange(encoder_size):
+        for l in range(encoder_size):
             input_feed[self.encoder_inputs[l].name] = encoder_inputs[l]
-        for l in xrange(decoder_size):
+        for l in range(decoder_size):
             input_feed[self.decoder_inputs[l].name] = decoder_inputs[l]
             input_feed[self.target_weights[l].name] = target_weights[l]
 
@@ -166,7 +166,7 @@ class Seq2SeqModel:
             else:
                 output_feed = [self.losses[bucket_id]]
 
-            for l in xrange(decoder_size):
+            for l in range(decoder_size):
                 output_feed.append(self.outputs[bucket_id][l])
 
         outputs = session.run(output_feed, input_feed)
@@ -177,4 +177,4 @@ class Seq2SeqModel:
             if beam_search:
                 return outputs[0], outputs[1], outputs[2:] #No gradient norm, loss, output
             else:
-                return None, outputs[0], outputs[1:] #No gradient norm, loss, output
+                return None, outputs[0], outputs[1:] #No gradient norm, loss, output                

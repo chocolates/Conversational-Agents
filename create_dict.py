@@ -38,7 +38,9 @@ def load_sorted_list(sorted_list_path=None, dialog_path=None):
 		datasetExist = True
 
 	if not datasetExist:
-	        print('Frequency list not found. Creating sorted list...')
+		print(os.getcwd())
+		print(sorted_list_path)
+		print('Frequency list not found. Creating sorted list...')
 		sorted_words_list = construct_list(dialog_path)
 		print('Saving sorted list...')
 		save_sorted_list(sorted_list_path, sorted_words_list)

@@ -77,8 +77,10 @@ class TextData:
 
         # Iterate over rows in conversation dataframe
         for index in tqdm(range(1,len(conversation))):
-            inputWords = self.extract_text(nltk.word_tokenize(conversation.iloc[index]['Context'].decode('utf8','ignore')))
-            targetWords = self.extract_text(nltk.word_tokenize(conversation.iloc[index]['Utterance'].decode('utf8','ignore')))
+            # inputWords = self.extract_text(nltk.word_tokenize(conversation.iloc[index]['Context'].decode('utf8','ignore')))
+            inputWords = self.extract_text(nltk.word_tokenize(conversation.iloc[index]['Context']))
+            # targetWords = self.extract_text(nltk.word_tokenize(conversation.iloc[index]['Utterance'].decode('utf8','ignore')))
+            targetWords = self.extract_text(nltk.word_tokenize(conversation.iloc[index]['Utterance']))
 
             if inputWords and targetWords:
                 if len(inputWords)>self.max_context_len:
@@ -178,9 +180,9 @@ class TextData:
             print('Utterance: {}'.format(self.sequence2str(self.samples[idBucket][idSample][1])))
 
     def get_batches(self, batch_size):
-        train_bucket_sizes = [len(self.samples[i]) for i in xrange(len(_buckets))]
+        train_bucket_sizes = [len(self.samples[i]) for i in range(len(_buckets))]
         train_total_size = float(sum(train_bucket_sizes))
-        train_buckets_scale_cumsum = [sum(train_bucket_sizes[:i + 1])/train_total_size for i in xrange(len(train_bucket_sizes))]
+        train_buckets_scale_cumsum = [sum(train_bucket_sizes[:i + 1])/train_total_size for i in range(len(train_bucket_sizes))]
         num_batches_taken = [0]*len(_buckets)
 
         self.shuffle()
@@ -188,9 +190,9 @@ class TextData:
         batches = []
 
         for i in range(0, self.get_sample_size(), batch_size):
-            bucket_id = min([i for i in xrange(len(train_buckets_scale_cumsum)) if train_buckets_scale_cumsum[i] > np.random.random()])
+            bucket_id = min([i for i in range(len(train_buckets_scale_cumsum)) if train_buckets_scale_cumsum[i] > np.random.random()])
             while num_batches_taken[bucket_id]*batch_size>train_bucket_sizes[bucket_id]:
-                bucket_id = min([i for i in xrange(len(train_buckets_scale_cumsum)) if train_buckets_scale_cumsum[i] > np.random.random()])
+                bucket_id = min([i for i in range(len(train_buckets_scale_cumsum)) if train_buckets_scale_cumsum[i] > np.random.random()])
             encoder_size, decoder_size = _buckets[bucket_id]
 
             start_idx = num_batches_taken[bucket_id]*batch_size
@@ -202,21 +204,21 @@ class TextData:
 
             encoder_inputs = []
             decoder_inputs = []
-            for idx in xrange(start_idx, end_idx):
+            for idx in range(start_idx, end_idx):
                 encoder_input, decoder_input = self.samples[bucket_id][idx]
                 encoder_pad = [self.word2id[self.padToken]]*(encoder_size-len(encoder_input))
                 encoder_inputs.append(list(reversed(encoder_input+encoder_pad)))
                 decoder_pad = [self.word2id[self.padToken]]*(decoder_size+2-len(decoder_input))
                 decoder_inputs.append([self.word2id[self.goToken]]+decoder_input+decoder_pad)
 
-            for length_idx in xrange(encoder_size):
-                batch.encoder_inputs.append(np.array([encoder_inputs[batch_idx][length_idx] for batch_idx in xrange(batch_size)], dtype = np.int32))
+            for length_idx in range(encoder_size):
+                batch.encoder_inputs.append(np.array([encoder_inputs[batch_idx][length_idx] for batch_idx in range(batch_size)], dtype = np.int32))
 
-            for length_idx in xrange(decoder_size+2):
-                batch.decoder_inputs.append(np.array([decoder_inputs[batch_idx][length_idx] for batch_idx in xrange(batch_size)], dtype = np.int32))
+            for length_idx in range(decoder_size+2):
+                batch.decoder_inputs.append(np.array([decoder_inputs[batch_idx][length_idx] for batch_idx in range(batch_size)], dtype = np.int32))
 
                 weight = np.ones(batch_size, dtype=np.float32)
-                for batch_idx in xrange(batch_size):
+                for batch_idx in range(batch_size):
                     if length_idx==decoder_size or decoder_inputs[batch_idx][length_idx+1]==self.word2id[self.padToken]:
                         weight[batch_idx] = 0.0
                 batch.weights.append(weight)
@@ -226,9 +228,9 @@ class TextData:
         return batches
 
     def shuffle(self):
-        print "Shuffling dataset..."
-        for i in xrange(len(self.samples)):
+        print("Shuffling dataset...")
+        for i in range(len(self.samples)):
             random.shuffle(self.samples[i])
 
     def get_sample_size(self):
-        return sum([len(self.samples[x]) for x in xrange(len(_buckets))])
+        return sum([len(self.samples[x]) for x in range(len(_buckets))])
