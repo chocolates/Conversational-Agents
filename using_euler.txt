@@ -19,6 +19,21 @@ export PYTHONPATH=$HOME/python/lib64/python3.3/site-packages:$PYTHONPATH
 module load python/3.3.3
 python -m pip install --install-option="--prefix=$HOME/python" tqdm
 
+# install nltk (pip-installation requires python3.4+ :)! so build from source)
+# reference: (1)https://people.ee.ethz.ch/~muejonat/eth-supercomputing/; (2) http://stackoverflow.com/questions/22327732/how-to-use-nltk3-for-python33; (3) https://pip.pypa.io/en/stable/reference/pip_install/
+cd $HOME/python
+mkdir tmp
+cd tmp
+wget https://pypi.python.org/packages/e1/1a/3fa24337f4fb6fb829dbe1934d206998e4377307e72a8ec7f7d860cfc097/nltk-3.0.0.tar.gz#md5=b4e6bbc035bcaa25ac4e6eef0acf77bc
+tar -xzvf nltk-3.0.0.tar.gz
+cd nltk-3.0.0
+python setup.py install --prefix="$HOME/python"
+
+# install pandas (slowly... very strange)
+python -m pip install --install-option="--prefix=$HOME/python" pandas
+
+
+
 scp ./euler.bash zhhan@euler.ethz.ch:/cluster/scratch/zhhan/Chatbot
 
 chmod +x euler.bash
@@ -27,3 +42,4 @@ chmod +x euler.bash
 # see jobs
 bjobs
 bkill
+
