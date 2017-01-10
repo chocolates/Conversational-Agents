@@ -85,17 +85,17 @@ class Seq2SeqModel:
 
         #Our targets are decoder inputs shifted by one.
         targets = [self.decoder_inputs[i+1] for i in xrange(len(self.decoder_inputs)-1)]
-
+        buckets2 = [(b[0],b[1]+2) for b in buckets]
         if forward_only:
             if beam_search:
                 self.outputs, self.beam_path, self.beam_symbol = decode_model_with_buckets(
                         self.encoder_inputs, self.decoder_inputs, targets,
-                        self.target_weights, buckets, lambda x,y: seq2seq_f(x,y,True),
+                        self.target_weights, buckets2, lambda x,y: seq2seq_f(x,y,True),
                         softmax_loss_function=softmax_loss_function)
             else:
                 self.outputs, self.losses = model_with_buckets(
                         self.encoder_inputs, self.decoder_inputs, targets,
-                        self.target_weights, buckets, lambda x,y: seq2seq_f(x,y,True),
+                        self.target_weights, buckets2, lambda x,y: seq2seq_f(x,y,True),
                         softmax_loss_function=softmax_loss_function)
             # If we use output projection, we need to project outputs for decoding.
             if output_projection is not None:
@@ -107,7 +107,7 @@ class Seq2SeqModel:
         else:
             self.outputs, self.losses = model_with_buckets(
                     self.encoder_inputs, self.decoder_inputs, targets,
-                    self.target_weights, buckets, lambda x,y: seq2seq_f(x,y,True),
+                    self.target_weights, buckets2, lambda x,y: seq2seq_f(x,y,True),
                     softmax_loss_function=softmax_loss_function)
 
         #Gradients and SGD update operation for training the model.
