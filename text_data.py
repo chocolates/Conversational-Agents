@@ -132,10 +132,11 @@ class TextData:
                 "id2word": self.id2word,
                 "samples": self.samples
                 }
-            pickle.dump(data, handle, -1)  # Using the highest protocol available
+            pickle.dump(data, handle, protocol=2)  # Using the highest protocol available
 
     def load_dataset(self, samples_path):
         with open(samples_path, 'rb') as handle:
+            print("STRONG ERROR on EULER")
             data = pickle.load(handle)  # Warning: If adding something here, also modifying saveDataset
             self.word2id = data["word2id"]
             self.id2word = data["id2word"]
