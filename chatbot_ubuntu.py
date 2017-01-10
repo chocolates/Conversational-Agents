@@ -78,7 +78,7 @@ def train():
         #Training loop
         step_time, loss = 0.0, 0.0
         current_step = 0
-        previous_loss = []
+        previous_losses = []
 
         for e in range(FLAGS.num_epochs):
 
@@ -95,7 +95,7 @@ def train():
                 bucket_id = bucket_id_map[len(nextBatch.encoder_inputs)]
 
                 _, step_loss, _ = model.step(sess, nextBatch, bucket_id, False, False) # for nextBatch:  decoderSeqs and targetSeqs are very similar, see DeepQA/textdata.py/Line 121-122
-                
+
                 step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
                 loss += step_loss / FLAGS.steps_per_checkpoint
                 current_step += 1
