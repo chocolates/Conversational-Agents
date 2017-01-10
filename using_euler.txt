@@ -43,3 +43,5 @@ chmod +x euler.bash
 bjobs
 bkill
 
+# create more jobs...
+cp -R Chatbot/ ./Chatbot2 
